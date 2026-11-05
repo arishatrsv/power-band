@@ -1,0 +1,7 @@
+* text=auto
+*.sh text eol=lf
+
+# Binary data files of the project: git must never touch their bytes
+*.music binary
+*.index binary
+*.list binary

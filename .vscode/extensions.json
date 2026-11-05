@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "vscjava.vscode-java-pack",
+    "GitHub.copilot",
+    "GitHub.copilot-chat",
+    "bierner.markdown-mermaid",
+    "eamodio.gitlens"
+  ]
+}
