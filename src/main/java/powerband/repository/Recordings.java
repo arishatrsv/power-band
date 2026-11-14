@@ -25,7 +25,7 @@ public class Recordings {
     }
 
     public RecordFile openMusic() throws PowerBandException{
-        return new RecordFile(dir.resolve(Constants.MUSIC_FILE), Constants.Records.RECORD_SIZE);
+        return new RecordFile(dir.resolve(Constants.MUSIC_FILE), Constants.RECORD_SIZE);
     }
 
     //Búsqueda binaria en el disco. 
