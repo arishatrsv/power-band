@@ -41,6 +41,7 @@ public class Player {
         Header header = storage.readHeader(entry.value()); //Se lee el encabezado
 
         cancelled = false; //Se reinicia la bandera de cancelación
+        BlockingQueue<CommandRecord> queue = new ArrayBlockingQueue<>(Constants.BUFFER_SIZE);
         loader = new Thread(() -> load(header, queue)); //Hilo Lector
         player = new Thread(() -> run(queue)); //Hilo Reproductor
         loader.setDaemon(true); //

@@ -42,7 +42,7 @@ public final class Main {
             Player player = new Player(storage, osc);
             new Menu(recorder, player, storage, monitor).run(); //editor musical 
 
-            Player.stop(); //Detener cualquier reproducción que quede
+            player.stop(); //Detener cualquier reproducción que quede
             recorder.discard(); //Si se sale grabando, no queda un encabezado de grabación sin datos
         }catch (PowerBandException e) {
             System.err.println(Constants.ERROR + e.getMessage());

@@ -1,4 +1,4 @@
-package powerband.repository;
+package powerband;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -20,6 +20,7 @@ import powerband.model.NameEntry;
 import powerband.model.Params;
 import powerband.model.SynthType;
 import powerband.sort.IndexSorter;
+import powerband.repository.*;
 
 /** Registros de tamaño fijo, búsqueda binaria en disco y Balanced Merge Sort externo. */
 class StorageTest {

@@ -1,4 +1,4 @@
-package powerband.service;
+package powerband;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import powerband.command.CommandBus;
 import powerband.command.SynthCommand;
+import powerband.service.Player;
+import powerband.service.Recorder;
 import powerband.constants.Constants;
 import powerband.exception.DuplicateNameException;
 import powerband.exception.PowerBandException;
