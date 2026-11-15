@@ -12,8 +12,9 @@ import powerband.repository.RecordFile;
 import powerband.repository.Records;
 import powerband.repository.Recordings;
 
-
-
+//El grabador. recibe TODOS los comandos de TODOS los instrumentos y los guarda solo si se está grabando.
+//Todo es synchronized: tres instrumentos publican desde hilos distintos y no se puede
+//escribir el archivo desde dos hilos a la vez.
 public class Recorder implements CommandBus.Listener {
     private final Recordings storage;
     private RecordFile music;   //abierto mientras haya una grabación en curso o pendiente de nombre
