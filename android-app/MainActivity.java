@@ -99,52 +99,52 @@ public class MainActivity extends Activity implements SensorEventListener {
 
     @Override
     protected void onResume() {
-        super.onResume();
-        Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME); // ~50 lecturas/s
+        super.onResume(); // Ejecuta la reanudación de la actividad base
+        Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER); // Obtiene el acelerómetro del dispositivo
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME); // Registra esta actividad para recibir lecturas frecuentes del acelerómetro
     }
 
     @Override
     protected void onPause() {
-        super.onPause();
-        sensorManager.unregisterListener(this);
+        super.onPause(); // Ejecuta la pausa de la actividad base
+        sensorManager.unregisterListener(this); // Deja de recibir lecturas para ahorrar recursos mientras la pantalla está pausada
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        x = event.values[0];
-        y = event.values[1];
-        z = event.values[2];
-        send();
+        x = event.values[0]; // Actualiza la aceleración medida en el eje X
+        y = event.values[1]; // Actualiza la aceleración medida en el eje Y
+        z = event.values[2]; // Actualiza la aceleración medida en el eje Z
+        send(); // Envía las lecturas actuales junto con el estado del toque
     }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
-        // No se usa.
+        // No se necesita reaccionar a cambios en la precisión del sensor.
     }
 
-    //Arma el texto (con Locale.US: el punto decimal, no la coma) y lo manda por UDP en el hilo de red.
+    // Forma el mensaje con punto decimal y lo envía por UDP fuera del hilo de interfaz.
     private void send() {
-        final String text = String.format(Locale.US, MESSAGE_FORMAT, x, y, z, touching ? TOUCH_DOWN : TOUCH_UP);
+        final String text = String.format(Locale.US, MESSAGE_FORMAT, x, y, z, touching ? TOUCH_DOWN : TOUCH_UP); // Formatea los tres ejes y el estado táctil en el protocolo esperado
         network.execute(() -> {
             try {
-                if (socket == null || target == null) {
-                    return;
+                if (socket == null || target == null) { // Comprueba que el socket y el destino estén configurados
+                    return; // No envía datos mientras no haya conexión preparada
                 }
-                byte[] data = text.getBytes(StandardCharsets.UTF_8);
-                socket.send(new DatagramPacket(data, data.length, target, SERVER_PORT));
+                byte[] data = text.getBytes(StandardCharsets.UTF_8); // Convierte el mensaje a bytes UTF-8 para transmitirlo
+                socket.send(new DatagramPacket(data, data.length, target, SERVER_PORT)); // Envía el datagrama al servidor y puerto configurados
             } catch (Exception ignored) {
-                // UDP: si un mensaje se pierde no pasa nada, llegará el siguiente.
+                // Si falla este envío UDP, se omite; las siguientes lecturas volverán a enviar el estado.
             }
         });
     }
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
-        network.shutdownNow();
-        if (socket != null) {
-            socket.close();
+        super.onDestroy(); // Ejecuta la limpieza de la actividad base
+        network.shutdownNow(); // Detiene las tareas de red pendientes
+        if (socket != null) { // Comprueba si se creó el socket UDP
+            socket.close(); // Libera el socket y sus recursos de red
         }
     }
 }
