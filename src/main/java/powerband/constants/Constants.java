@@ -84,7 +84,6 @@ public final class Constants {
     public static final float STICK_THRESHOLD = 0.5f;
     public static final String STICK_Y_AXIS = "y";
     public static final float BUTTON_ON = 0.5f;
-    public static final String GAMEPAD_READER_CLASS = "powerband.instrument.JInputGamepadReader";
 
     // ===================== Celular (UDP desde la app Android) =====================
     public static final int PHONE_PORT = 9000;
@@ -126,7 +125,6 @@ public final class Constants {
     public static final String MSG_RECORD_SIZE = "Registro de tamaño distinto al esperado: ";
     public static final String MSG_PLAYING = "Ya hay una reproducción en curso";
     public static final String MSG_MIC = "No se pudo abrir el micrófono de los audífonos";
-    public static final String MSG_GAMEPAD_LIB = "Falta JInput: el control no se activó";
     public static final String MSG_GAMEPAD_NONE = "No se encontró un control conectado";
     public static final String MSG_PORT = "No se pudo abrir el puerto UDP ";
     public static final String MSG_BAD_PHONE = "Mensaje del celular inválido: ";
@@ -137,7 +135,6 @@ public final class Constants {
     public static final String FAILED = "Instrumento NO disponible: ";
     public static final String ERROR = "Error: ";
     public static final String STARTUP_MESSAGE = "Power Band";
-    public static final String CALIBRATION_HEADER = "Control: ";
     public static final String CALIBRATION_LINE = "%s = %s%n";
     public static final String MENU = "\n=== POWER BAND ===\n1) Iniciar grabación\n2) Detener grabación\n"
             + "3) Cargar y reproducir\n4) Detener reproducción\n5) Monitor on/off\n0) Salir\n> ";
