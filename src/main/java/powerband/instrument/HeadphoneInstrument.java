@@ -16,25 +16,27 @@ import powerband.exception.PowerBandException;
 import powerband.model.Params;
 
 /**
- * audifonos - bajo. Se tararea una nota en el micrófono de los audífonos:
- *   - cada vez queel volumen sube después de silencio dispara una nota de bajo
+ * Audífonos - bajo. Se tararea una nota en el micrófono de los audífonos:
+ *   - cada vez que el volumen sube después de silencio dispara una nota de bajo
  *   - el tono de la voz decide la nota (se pliega por octavas al rango del bajo).
  * Usa javax.sound.sampled (viene con Java). Elegir el micrófono: -Dpowerband.mic=parte-del-nombre
  */
 public final class HeadphoneInstrument extends Instrument {
 
-    private TargetDataLine line;
-    private float sampleRate;
-    private Thread thread;
-    private boolean silent = true;//el bloque anterior estaba en silencio?
-    private int loudBlocks;// bloques seguidos con sonido
+    private TargetDataLine line; // Línea de entrada que entrega el audio del micrófono
+    private float sampleRate; // Frecuencia elegida para leer y analizar las muestras
+    private Thread thread; // Hilo dedicado a capturar audio sin bloquear la aplicación
+    private boolean silent = true; // Indica si el bloque anterior estaba en silencio
+    private int loudBlocks; // Cantidad de bloques consecutivos que superan el umbral de sonido
 
+    // Configura el instrumento como fuente de notas de bajo.
     public HeadphoneInstrument(CommandBus bus, SynthCommand command) {
         super(Constants.NAME_MIC, command, bus);
     }
 
     @Override
     protected void open() throws PowerBandException {
+        // Prueba las frecuencias soportadas hasta encontrar una que acepte el micrófono.
         for (float rate : Constants.MIC_RATES) { // los micrófonos Bluetooth suelen dar 16 kHz
             try {
                 line = openLine(rate);
@@ -51,12 +53,14 @@ public final class HeadphoneInstrument extends Instrument {
         throw new PowerBandException(Constants.MSG_MIC);
     }
 
+    // Abre el micrófono solicitado o, si no se especificó uno, la entrada predeterminada.
     private TargetDataLine openLine(float rate) throws LineUnavailableException {
         AudioFormat format = new AudioFormat(rate, Constants.MIC_BITS, 1, true, false); // mono, con signo, little-endian
         DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
         String wanted = System.getProperty(Constants.MIC_PROPERTY, "").toLowerCase();
         TargetDataLine opened = null;
         if (!wanted.isEmpty()) {
+            // Busca un dispositivo cuyo nombre coincida con el filtro configurado.
             for (Mixer.Info mixerInfo : AudioSystem.getMixerInfo()) {
                 Mixer mixer = AudioSystem.getMixer(mixerInfo);
                 if (mixerInfo.getName().toLowerCase().contains(wanted) && mixer.isLineSupported(info)) {
@@ -68,11 +72,11 @@ public final class HeadphoneInstrument extends Instrument {
         if (opened == null) {
             opened = (TargetDataLine) AudioSystem.getLine(info);// micrófono por defecto
         }
-        opened.open(format);
+        opened.open(format); // Reserva la entrada con el formato de audio seleccionado
         return opened;
     }
 
-    //Hilo de captura: lee bloques de audio mientras el micrófono esté abierto
+    // Lee bloques de audio mientras el micrófono esté abierto y los entrega al detector de ataques.
     private void capture() {
         int samples = (int) (sampleRate * Constants.MIC_BLOCK_MS / 1000);
         byte[] bytes = new byte[samples * Constants.MIC_BITS / Byte.SIZE];
@@ -81,6 +85,7 @@ public final class HeadphoneInstrument extends Instrument {
             if (read <= 0) {
                 return;
             }
+            // Interpreta cada par de bytes como una muestra PCM de 16 bits little-endian.
             var shorts = ByteBuffer.wrap(bytes, 0, read).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer();
             double[] block = new double[shorts.remaining()];
             for (int i = 0; i < block.length; i++) {
@@ -90,7 +95,7 @@ public final class HeadphoneInstrument extends Instrument {
         }
     }
 
-    //Lógica de "ataque" separada de la captura para poder probarla sin micrófono
+    // Detecta un nuevo sonido, espera a que se estabilice y emite una nota de bajo.
     void onBlock(double[] block, float rate) {
         if (rms(block) < Constants.ONSET_RMS) {
             silent = true;                  // volvió el silencio: el próximo sonido será un ataque nuevo
@@ -105,12 +110,13 @@ public final class HeadphoneInstrument extends Instrument {
         if (loudBlocks == Constants.STABLE_BLOCKS) {          // se espera un poco a que el tono se estabilice
             OptionalDouble hz = PitchDetector.detect(block, rate);
             if (hz.isPresent()) {
+                // Convierte el tono medido a nota MIDI y la ajusta al registro del bajo.
                 emit(Params.bass(foldIntoBassRange(PitchDetector.hzToMidi(hz.getAsDouble())), Constants.BASS_NOTE_MS));
             }
         }
     }
 
-    //Sube o baja de octava hasta caer en el rango del bajo
+    // Sube o baja la nota por octavas hasta ubicarla dentro del rango del bajo.
     static int foldIntoBassRange(int note) {
         int folded = note;
         while (folded > Constants.BASS_MAX_NOTE) {
@@ -122,7 +128,7 @@ public final class HeadphoneInstrument extends Instrument {
         return folded;
     }
 
-    //RMS = raíz de la media de los cuadrados: el "volumen" del bloque
+    // Calcula el RMS del bloque como medida de su volumen promedio.
     static double rms(double[] x) {
         double sum = 0;
         for (double v : x) {
@@ -134,7 +140,7 @@ public final class HeadphoneInstrument extends Instrument {
     @Override
     protected void close() {
         if (line != null) {
-            line.stop();
+            line.stop(); // Detiene la captura antes de liberar la entrada
             line.close(); // el read() del hilo termina y el hilo sale
         }
     }

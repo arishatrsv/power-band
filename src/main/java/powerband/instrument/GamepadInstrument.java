@@ -25,16 +25,18 @@ import powerband.model.Params;
  */
 public final class GamepadInstrument extends Instrument {
 
-    private Controller controller;
-    private ScheduledExecutorService scheduler;
-    private Set<Integer> before = Set.of();
+    private Controller controller; // Control físico seleccionado para leer sus componentes
+    private ScheduledExecutorService scheduler; // Programa lecturas periódicas del control
+    private Set<Integer> before = Set.of(); // Botones presionados en la lectura anterior
 
+    // Configura el instrumento como controlador de notas de piano.
     public GamepadInstrument(CommandBus bus, SynthCommand command) {
         super(Constants.NAME_GAMEPAD, command, bus);
     }
 
     @Override
     protected void open() throws PowerBandException {
+        // Usa el primer dispositivo reconocido como gamepad o joystick.
         for (Controller c : ControllerEnvironment.getDefaultEnvironment().getControllers()) {
             if (c.getType() == Controller.Type.GAMEPAD || c.getType() == Controller.Type.STICK) {
                 controller = c;
@@ -46,7 +48,7 @@ public final class GamepadInstrument extends Instrument {
         throw new PowerBandException(Constants.MSG_GAMEPAD_NONE);
     }
 
-    //Si una ejecución lanzara excepción, scheduleAtFixedRate dejaría de repetirla: por eso se atrapa todo
+    // Lee el estado del control y evita que una excepción detenga las lecturas programadas.
     private void poll() {
         try {
             if (!controller.poll()) {// false = el control se desconectó
@@ -56,6 +58,7 @@ public final class GamepadInstrument extends Instrument {
             }
             Set<Integer> pressed = new HashSet<>();
             float stickY = 0;
+            // Separa el eje vertical de los botones numéricos reportados por JInput.
             for (Component c : controller.getComponents()) {
                 String name = c.getIdentifier().getName();
                 if (name.equals(Constants.STICK_Y_AXIS)) {
@@ -70,8 +73,9 @@ public final class GamepadInstrument extends Instrument {
         }
     }
 
-    //Lógica del control. Separada de la lectura para poder probarla sin el control conectado
+    // Interpreta botones y eje vertical; solo emite cuando una nota acaba de presionarse.
     void handle(Set<Integer> pressed, float stickY) {
+        // El eje modifica la octava solo cuando supera el umbral configurado.
         int octave = stickY < -Constants.STICK_THRESHOLD ? Constants.SEMITONES
                 : stickY > Constants.STICK_THRESHOLD ? -Constants.SEMITONES : 0;
         for (int i = 0; i < Constants.GAMEPAD_NOTE_BUTTONS.length; i++) {
@@ -79,15 +83,16 @@ public final class GamepadInstrument extends Instrument {
             if (pressed.contains(button) && !before.contains(button)) {
                 int note = Constants.GAMEPAD_BASE_NOTE + Constants.SCALE[i] + octave;
                 boolean major = !pressed.contains(Constants.GAMEPAD_MINOR_BUTTON);
+                // El botón menor cambia la calidad del acorde antes de publicarlo en el bus.
                 emit(Params.piano(note, Constants.GAMEPAD_NOTE_MS, major));
             }
         }
-        before = new HashSet<>(pressed);
+        before = new HashSet<>(pressed); // Guarda el estado actual para detectar el siguiente flanco
     }
 
     @Override
     protected void close() {
-        scheduler.shutdownNow();
-        controller = null;
+        scheduler.shutdownNow(); // Detiene las lecturas periódicas pendientes
+        controller = null; // Descarta la referencia al dispositivo seleccionado
     }
 }

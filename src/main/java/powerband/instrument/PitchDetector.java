@@ -14,11 +14,14 @@ public final class PitchDetector {
     private PitchDetector() {
     }
 
+    // Busca el periodo dominante del bloque y devuelve la frecuencia fundamental si es confiable.
     public static OptionalDouble detect(double[] x, float sampleRate) {
+        // Convierte el rango de frecuencias admitido a un rango de periodos medidos en muestras.
         int minLag = (int) Math.floor(sampleRate / Constants.PITCH_MAX_HZ);
         int maxLag = Math.min((int) Math.ceil(sampleRate / Constants.PITCH_MIN_HZ), x.length - 2);
         double[] corr = new double[maxLag + 2];
         double best = 0;
+        // Calcula la correlación para cada periodo candidato y conserva el mejor parecido.
         for (int lag = minLag; lag <= maxLag; lag++) {
             corr[lag] = correlation(x, lag);
             best = Math.max(best, corr[lag]);
@@ -37,6 +40,7 @@ public final class PitchDetector {
         return OptionalDouble.empty();
     }
 
+    // Compara el bloque con una copia desplazada y normaliza el resultado entre -1 y 1.
     private static double correlation(double[] x, int lag) {
         double sum = 0;
         double energyA = 0;
@@ -50,7 +54,7 @@ public final class PitchDetector {
         return norm == 0 ? 0 : sum / norm;
     }
 
-    //Hz -> nota midi (inversa de la fórmula del órgano)
+    // Convierte una frecuencia en Hz a la nota MIDI más cercana usando La4 como referencia.
     public static int hzToMidi(double hz) {
         double semitones = Constants.SEMITONES * Math.log(hz / Constants.HZ_A4) / Math.log(2.0);
         return (int) Math.round(Constants.MIDI_A4 + semitones);

@@ -15,34 +15,38 @@ import powerband.model.Params;
  */
 public abstract class Instrument {
 
-    private final String name;
-    private final SynthCommand command;
-    private final CommandBus bus;
-    private boolean running;
+    private final String name; // Nombre visible que identifica el instrumento
+    private final SynthCommand command; // Comando que traduce sus datos a una accion del sintetizador
+    private final CommandBus bus; // Canal comun por el que se publican los comandos
+    private boolean running; // Indica si el dispositivo ya fue abierto
 
+    // Guarda los colaboradores necesarios para conectar el dispositivo con el bus de comandos.
     protected Instrument(String name, SynthCommand command, CommandBus bus) {
         this.name = name;
         this.command = command;
         this.bus = bus;
     }
 
+    // Inicia el instrumento una sola vez y deja que cada subclase abra su dispositivo.
     public final synchronized void start() throws PowerBandException {
         if (!running) {
-            open();
-            running = true;
+            open(); // Abre el dispositivo concreto; si falla, running permanece en false
+            running = true; // Marca el instrumento como activo solo despues de abrirlo
         }
     }
 
+    // Detiene el instrumento una sola vez y delega el cierre a su subclase.
     public final synchronized void stop() {
         if (running) {
-            running = false;
-            close();
+            running = false; // Evita que otra llamada concurrente intente detenerlo de nuevo
+            close(); // Libera el recurso concreto del dispositivo
         }
     }
 
     /** Abre el dispositivo y empieza a escuchar. */
     protected abstract void open() throws PowerBandException;
 
+    /** Cierra el dispositivo y libera los recursos asociados. */
     protected abstract void close();
 
     /** Los hijos llaman esto cuando el dispositivo produce algo: el comando viaja por el bus. */
@@ -50,6 +54,7 @@ public abstract class Instrument {
         bus.publish(command, params);
     }
 
+    // Devuelve el nombre asignado al instrumento.
     public String name() {
         return name;
     }

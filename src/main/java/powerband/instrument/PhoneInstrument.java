@@ -21,10 +21,11 @@ import powerband.model.Params;
  */
 public final class PhoneInstrument extends Instrument {
 
-    private DatagramSocket socket;
-    private boolean touching;
-    private int sounding;// nota que está encendida (válida si touching)
+    private DatagramSocket socket; // Socket que recibe mensajes UDP de la aplicación Android
+    private boolean touching; // Indica si el último mensaje reportó la pantalla presionada
+    private int sounding; // Nota que se encendió y debe apagarse al soltar la pantalla
 
+    // Configura el instrumento como servidor UDP para el celular.
     public PhoneInstrument(CommandBus bus, SynthCommand command) {
         super(Constants.NAME_PHONE, command, bus);
     }
@@ -36,6 +37,7 @@ public final class PhoneInstrument extends Instrument {
         } catch (SocketException e) {
             throw new PowerBandException(Constants.MSG_PORT + Constants.PHONE_PORT, e);
         }
+        // Recibe los datagramas en segundo plano para no bloquear el hilo que inicia el instrumento.
         Thread thread = new Thread(this::listen);
         thread.setDaemon(true);
         thread.start();
@@ -47,6 +49,7 @@ public final class PhoneInstrument extends Instrument {
             try {
                 DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                 socket.receive(packet);// espera un mensaje
+                // Usa solo los bytes recibidos y decodifica el protocolo como UTF-8.
                 handle(new String(packet.getData(), 0, packet.getLength(), StandardCharsets.UTF_8));
             } catch (IOException | RuntimeException e) {// un mensaje malo no debe tumbar el servidor
                 if (!socket.isClosed()) {
@@ -56,7 +59,7 @@ public final class PhoneInstrument extends Instrument {
         }
     }
 
-    //Procesa un mensaje "x;y;z;toque". Lo llama un solo hilo (el del servidor)
+    // Valida y procesa un mensaje "x;y;z;toque" recibido en el hilo del servidor.
     void handle(String text) {
         String[] f = text.strip().split(Constants.PHONE_SEPARATOR);
         if (f.length != Constants.PHONE_FIELDS) {
@@ -65,6 +68,7 @@ public final class PhoneInstrument extends Instrument {
         float x = Float.parseFloat(f[0]);
         float y = Float.parseFloat(f[1]);
         boolean down = Constants.PHONE_TOUCH.equals(f[3]);
+        // Una transicion a presionado inicia la nota; una transicion a suelto apaga la misma nota.
         if (down && !touching) {
             sounding = Constants.ORGAN_BASE_NOTE + Constants.ORGAN_SCALE[bucket(x, Constants.ORGAN_SCALE.length)];
             emit(Params.organOn(sounding, bucket(y, Constants.ORGAN_TIMBRES.length)));
@@ -74,7 +78,7 @@ public final class PhoneInstrument extends Instrument {
         touching = down;
     }
 
-    //Reparte el rango -G..+G en "count" tramos y devuelve en cuál cae el valor (0..count-1)
+    // Divide el rango de gravedad -G..+G en tramos y limita el resultado a un indice valido.
     private static int bucket(float value, int count) {
         float fraction = (value + Constants.GRAVITY) / (2 * Constants.GRAVITY);
         return Math.max(0, Math.min(count - 1, (int) (fraction * count)));
@@ -82,6 +86,6 @@ public final class PhoneInstrument extends Instrument {
 
     @Override
     protected void close() {
-        socket.close(); // despierta el receive() y el hilo termina
+        socket.close(); // Despierta receive() para que el hilo de escucha pueda terminar
     }
 }
