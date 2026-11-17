@@ -16,7 +16,7 @@ Programa en Java en el que tres dispositivos físicos tocan tres sintetizadores 
 
    ```
    mvn clean package
-   java -jar target/power-band.jar
+   java -Djava.library.path=target/natives -jar target/power-band.jar.
    ```
 4. Al arrancar, el programa conecta con SuperCollider, activa los instrumentos y abre el menú del editor.
 
@@ -201,7 +201,8 @@ sequenceDiagram
 
 El editor actúa como **servidor** del instrumento externo: `PhoneInstrument` escucha el puerto UDP en su propio hilo. Si un dispositivo falla al arrancar, el programa avisa y sigue con los demás.
 
-La app del celular está en `android-app/`. (pendiente) Pasos para compilarla e instalarla.
+La app del celular está en `android-app/`. 
+Se crea en Android Studio un proyecto "Empty Views Activity" (Java, paquete cr.powerband.phone, minSdk 24), se reemplaza MainActivity.java por el de esta carpeta y se agrega <uses-permission android:name="android.permission.INTERNET" /> al AndroidManifest.xml. En la app se escribe la IP de la computadora y se mantiene el dedo en la pantalla para tocar.
 
 ## Archivos y algoritmos
 
