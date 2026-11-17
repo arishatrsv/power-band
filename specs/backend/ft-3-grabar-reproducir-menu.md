@@ -1,7 +1,7 @@
 ---
 feature: ft-3-grabar-reproducir-menu
 layer: backend
-status: draft
+status: approved
 ---
 
 # ft-3 – Grabar, reproducir, menu y Main
@@ -19,6 +19,10 @@ Recorder y Player (service), Menu (ui) y Main (arranque).
 - Main es el unico que conoce las clases concretas.
 
 ## Criterios
-- [ ] grabar, guardar, listar (orden cronologico), cargar y reproducir con los mismos intervalos.
-- [ ] nombre repetido rechazado sin perder la grabacion.
-- [ ] mvn clean test en verde (RecordingFlowTest).
+- [x] grabar, guardar, listar (orden cronologico), cargar y reproducir con los mismos intervalos.
+- [x] nombre repetido rechazado sin perder la grabacion.
+- [x] mvn clean test en verde (RecordingFlowTest).
+
+## Notas tras implementar
+- Lo reproducido sale directo a OscClient: por eso el monitor no muestra comandos durante la reproduccion.
+- Main descarta cualquier grabacion pendiente al salir, para no dejar un encabezado vacio en recordings.music.

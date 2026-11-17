@@ -5,10 +5,8 @@ import net.java.games.input.Controller;
 import net.java.games.input.ControllerEnvironment;
 import powerband.constants.Constants;
 
-/**
- * Herramienta temporal de diagnóstico para calibrar el control. Lista los dispositivos
- * que ve JInput y luego imprime cada componente que se mueve o presiona, con su identificador.
- */
+//Herramienta temporal de diagnóstico para calibrar el control. Lista los dispositivos
+//que ve JInput y luego imprime cada componente que se mueve o presiona, con su identificador.
 public final class GamepadCalibration {
 
     private GamepadCalibration() {

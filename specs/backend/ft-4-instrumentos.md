@@ -1,7 +1,7 @@
 ---
 feature: ft-4-instrumentos
 layer: backend
-status: draft
+status: approved
 ---
 
 # ft-4 – Los tres instrumentos
@@ -17,8 +17,14 @@ GamepadInstrument (control PlayStation, piano), PhoneInstrument (celular, organo
 - Audifonos: autocorrelacion para el tono; cada ataque (volumen sobre ONSET_RMS tras silencio) dispara una nota de bajo plegada a su rango.
 - Si un dispositivo falla, Main avisa y el programa sigue con los demas.
 - Lo que depende del hardware (botones, umbrales) se calibra en Constants.
+- JInput necesita librerias nativas: el pom las baja (clasificador natives-all) y las descomprime en target/natives; se ejecuta con -Djava.library.path=target/natives.
+- Main crea los instrumentos con una lista de Supplier y los arranca uno por uno; si uno falla imprime FAILED y sigue.
 
 ## Criterios
 - [ ] Los tres instrumentos suenan por separado y a la vez.
 - [ ] Lo que tocan aparece en el monitor y se graba/reproduce igual.
-- [ ] mvn clean test en verde (InstrumentsTest).
+- [x] mvn clean test en verde (InstrumentsTest).
+
+## Notas tras implementar
+- Los criterios de hardware se marcan despues de probar cada dispositivo en la computadora de la demo.
+- GamepadCalibration es una herramienta temporal para ver el numero de cada boton; se elimina al terminar de calibrar.

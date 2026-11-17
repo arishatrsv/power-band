@@ -1,7 +1,7 @@
 ---
 feature: ft-1-base-synths-bridge
 layer: backend
-status: draft
+status: approved
 ---
 
 # ft-1 – Base, synths y Bridge
@@ -17,6 +17,10 @@ Constantes, excepciones propias, modelo, cliente OSC, comandos de synth, Command
 - noteOff del organo se graba como comando propio (Action.NOTE_OFF).
 
 ## Criterios
-- [ ] DemoMain hace sonar piano, bajo y organo pasando por el bus.
-- [ ] mvn clean test sigue en verde.
-- [ ] Agregar un synth = una clase nueva en command/.
+- [ ] Con los instrumentos activos, los 3 synths suenan pasando por el bus (se marca tras la prueba en la demo).
+- [x] mvn clean test sigue en verde.
+- [x] Agregar un synth = una clase nueva en command/.
+
+## Notas tras implementar
+- DemoMain era temporal y se elimino; la prueba de sonido ahora se hace con Main.
+- Los textos, puertos, rutas y tamanos viven en Constants; solo quedan literales en los codigos de los enums Action y SynthType y en indices de arreglos.
