@@ -36,16 +36,47 @@ public final class GamepadInstrument extends Instrument {
 
     @Override
     protected void open() throws PowerBandException {
-        // Usa el primer dispositivo reconocido como gamepad o joystick.
-        for (Controller c : ControllerEnvironment.getDefaultEnvironment().getControllers()) {
+        controller = pick(listControllers());
+        if (controller == null) {
+            throw new PowerBandException(Constants.MSG_GAMEPAD_NONE);
+        }
+        System.out.printf(Constants.CALIBRATION_PICKED, controller.getName());
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleAtFixedRate(this::poll, 0, Constants.GAMEPAD_POLL_MS, TimeUnit.MILLISECONDS);
+    }
+
+    // Todos los dispositivos que JInput ve en este momento.
+    static Controller[] listControllers() {
+        return ControllerEnvironment.getDefaultEnvironment().getControllers();
+    }
+
+    // Prefiere un dispositivo que JInput clasifica como gamepad o joystick. Algunos controles
+    // Bluetooth (p. ej. Nintendo) llegan como "desconocido": en ese caso se usa cualquier dispositivo
+    // que no sea teclado ni mouse y tenga suficientes botones.
+    static Controller pick(Controller[] all) {
+        for (Controller c : all) {
             if (c.getType() == Controller.Type.GAMEPAD || c.getType() == Controller.Type.STICK) {
-                controller = c;
-                scheduler = Executors.newSingleThreadScheduledExecutor();
-                scheduler.scheduleAtFixedRate(this::poll, 0, Constants.GAMEPAD_POLL_MS, TimeUnit.MILLISECONDS);
-                return;
+                return c;
             }
         }
-        throw new PowerBandException(Constants.MSG_GAMEPAD_NONE);
+        for (Controller c : all) {
+            boolean input = c.getType() != Controller.Type.KEYBOARD && c.getType() != Controller.Type.MOUSE;
+            if (input && countButtons(c) >= Constants.GAMEPAD_MIN_BUTTONS) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    // Cuenta los componentes que JInput identifica como botones (nombre numérico).
+    static int countButtons(Controller c) {
+        int n = 0;
+        for (Component comp : c.getComponents()) {
+            if (comp.getIdentifier() instanceof Component.Identifier.Button) {
+                n++;
+            }
+        }
+        return n;
     }
 
     // Lee el estado del control y evita que una excepción detenga las lecturas programadas.

@@ -84,6 +84,7 @@ public final class Constants {
     public static final float STICK_THRESHOLD = 0.5f;
     public static final String STICK_Y_AXIS = "y";
     public static final float BUTTON_ON = 0.5f;
+    public static final int GAMEPAD_MIN_BUTTONS = 8;// respaldo: cualquier dispositivo (no teclado/mouse) con tantos botones
 
     // ===================== Celular (UDP desde la app Android) =====================
     public static final int PHONE_PORT = 9000;
@@ -136,6 +137,11 @@ public final class Constants {
     public static final String ERROR = "Error: ";
     public static final String STARTUP_MESSAGE = "Power Band";
     public static final String CALIBRATION_LINE = "%s = %s%n";
+    public static final String CALIBRATION_DEVICE = "Dispositivo: tipo=%s nombre=\"%s\" componentes=%d botones=%d%n";
+    public static final String CALIBRATION_PICKED = "Usando: %s%n";
+    public static final String CALIBRATION_EVENT = "  [%s] %s = %.2f%n";
+    public static final String CALIBRATION_NONE = "JInput no ve ningún control. Revisa joy.cpl, cierra Steam y reconecta el control.";
+    public static final String CALIBRATION_WAIT = "Presiona botones del control (Ctrl+C para salir)...";
     public static final String MENU = "\n=== POWER BAND ===\n1) Iniciar grabación\n2) Detener grabación\n"
             + "3) Cargar y reproducir\n4) Detener reproducción\n5) Monitor on/off\n0) Salir\n> ";
     public static final String OPTION_START = "1";

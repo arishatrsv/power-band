@@ -1,36 +1,45 @@
 package powerband.instrument;
 
+import java.util.HashMap;
+import java.util.Map;
 import net.java.games.input.Component;
 import net.java.games.input.Controller;
-import net.java.games.input.ControllerEnvironment;
 import powerband.constants.Constants;
 
-//Herramienta temporal de diagnóstico para calibrar el control. Lista los dispositivos
-//que ve JInput y luego imprime cada componente que se mueve o presiona, con su identificador.
+//Herramienta de diagnóstico para calibrar el control. Lista TODOS los dispositivos que ve JInput
+//(con su tipo y cuántos botones tienen), elige el mismo que usará GamepadInstrument y luego imprime
+//cada botón o eje que cambia, con su identificador. Ese identificador es el número que va en Constants.
 public final class GamepadCalibration {
 
     private GamepadCalibration() {
     }
 
-    // Muestra los controles detectados y monitorea el primero que sea gamepad o joystick.
     public static void main(String[] args) throws InterruptedException {
-        Controller pad = null;
-        // Imprime el tipo y nombre de cada dispositivo, y conserva el primer control utilizable.
-        for (Controller c : ControllerEnvironment.getDefaultEnvironment().getControllers()) {
-            System.out.printf(Constants.CALIBRATION_LINE, c.getType(), c.getName());
-            if (pad == null && (c.getType() == Controller.Type.GAMEPAD || c.getType() == Controller.Type.STICK)) {
-                pad = c;
-            }
+        Controller[] all = GamepadInstrument.listControllers();
+        for (Controller c : all) {
+            System.out.printf(Constants.CALIBRATION_DEVICE, c.getType(), c.getName(),
+                    c.getComponents().length, GamepadInstrument.countButtons(c));
         }
-        // Sigue leyendo hasta que el control se desconecte o deje de responder.
-        while (pad != null && pad.poll()) {
-            // Informa los componentes activos para identificar botones y ejes en la configuracion.
+        Controller pad = GamepadInstrument.pick(all);
+        if (pad == null) {
+            System.out.println(Constants.CALIBRATION_NONE);
+            return;
+        }
+        System.out.printf(Constants.CALIBRATION_PICKED, pad.getName());
+        System.out.println(Constants.CALIBRATION_WAIT);
+        Map<String, Float> last = new HashMap<>();
+        // Imprime solo cuando un componente cambia de valor (evita llenar la consola mientras se mantiene).
+        while (pad.poll()) {
             for (Component c : pad.getComponents()) {
-                if (Math.abs(c.getPollData()) > Constants.BUTTON_ON) {
-                    System.out.printf(Constants.CALIBRATION_LINE, c.getIdentifier().getName(), c.getPollData());
+                String id = c.getIdentifier().getName();
+                float value = c.getPollData();
+                Float old = last.put(id, value);
+                boolean useful = id.chars().allMatch(Character::isDigit) || id.equals(Constants.STICK_Y_AXIS);
+                if (useful && Math.abs(value) > Constants.BUTTON_ON && (old == null || Math.abs(old - value) > Constants.BUTTON_ON)) {
+                    System.out.printf(Constants.CALIBRATION_EVENT, id, c.getName(), value);
                 }
             }
-            Thread.sleep(Constants.GAMEPAD_POLL_MS * 10);
+            Thread.sleep(Constants.GAMEPAD_POLL_MS);
         }
     }
 }
