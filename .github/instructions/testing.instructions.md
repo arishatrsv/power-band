@@ -4,10 +4,12 @@ description: "Map of the implemented tests and the files to open before changing
 ---
 # Testing
 
-Authoritative directory: `src/test/java/powerband/`. JUnit 5. Name tests `<ClassName>Test.java`. Run with `mvn test`.
+Authoritative directory: `src/test/java/powerband/`. JUnit 5 is the test project. Run `mvn test`; package/verify with `mvn clean package`.
 
 ## Implemented
-- `StorageTest`: fixed record sizes, name validation, external merge sort over many sizes, binary search.
-- `RecordingFlowTest`: record, save, load and play with the recorded intervals (60 ms tolerance), duplicate name, discard, double playback. Uses a fake OscClient that overrides `send`.
-- `instrument/InstrumentsTest`: pitch detector, bass instrument, gamepad (edges, minor, octave) and phone (noteOn/noteOff, invalid messages), without any hardware.
-- `MainTest`: startup message.
+- `powerband.MainTest`: verifies `Main.startupMessage()` is not blank.
+- `powerband.StorageTest`: fixed 48-byte/32-byte record sizes and round trips, corrupt-record rejection, name validation, merge-sort sizes `0`–`257`, binary search, chronology, and case-insensitive lookup.
+- `powerband.RecordingFlowTest`: record/save/load/play flow, recorded timing with a 60 ms tolerance, duplicate names and pending-save retries, discard behavior, ignored commands outside capture, unknown names, and rejecting double playback. `FakeOsc` overrides protected `OscClient.send(...)`.
+- `powerband.instrument.InstrumentsTest`: pitch detection/noise rejection, microphone onset and bass range, gamepad press-edge/minor/octave behavior, and phone touch/release/note/timbre plus bad-message handling.
+
+Add tests in mirrored package directories and name classes `<ClassName>Test`. Use `@TempDir` for file-storage tests and fake devices/OSC implementations instead of hardware or a live SuperCollider process. Recordings tests must retain fixed-size and disk-search/sort behavior.

@@ -4,7 +4,12 @@ description: "Map of the build and run setup and the files to open before changi
 ---
 # Deploy
 
-Build file: `pom.xml` (Maven, JUnit 5). `mvn clean package` produces `target/power-band.jar`, copies the dependencies to `target/lib/` (the jar manifest points there) and unpacks the JInput native libraries to `target/natives/`.
-Run: `java -Djava.library.path=target/natives -jar target/power-band.jar`. JInput (with its `natives-all` classifier) is the only external library.
-SuperCollider must be running with `supercollider/myband.sc` loaded (`~myband.load;`) before the app can make sound.
-Do not change the build setup without checking `.github/copilot-instructions.md`.
+Primary build: `pom.xml` (Maven), Java release `21`, JUnit 5.11.4, JInput 2.0.10, Surefire, and dependency plugins.
+
+- `mvn clean package` produces `target/power-band.jar`, copies runtime dependencies to `target/lib/`, and unpacks JInput natives to `target/natives/`.
+- Run on macOS/Linux-style setup with `java -Djava.library.path=target/natives -jar target/power-band.jar`.
+- The jar manifest main class is `powerband.Main` and classpath prefix is `lib/`.
+- SuperCollider must run `supercollider/myband.sc` and load `~myband.load;` before OSC commands can produce sound.
+- Android companion build: `PowerBandPhone/app/build.gradle`, Gradle Android plugin, `compileSdk 34`, `minSdk 24`, `targetSdk 34`, Java 8 source/target compatibility. Open `PowerBandPhone/settings.gradle`, `build.gradle`, `gradle.properties`, and `local.properties` for the complete Android build environment.
+
+Do not change the Maven JAR layout or native extraction behavior without checking `.github/copilot-instructions.md`. The Android app is a separate UDP client and is not packaged into the Maven JAR.
