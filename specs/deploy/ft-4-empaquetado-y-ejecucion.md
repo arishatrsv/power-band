@@ -9,7 +9,7 @@ status: approved
 ## Alcance
 pom.xml y la forma de ejecutar el programa.
 
-## Regl as
+## Reglas
 -Maven con Java 21 y JUnit 5.
 -JInput es la unica libreria externa de ejecucion; se declaran sus dependencias y el jar de librerias nativas con el clasificador natives-all.
 -maven-dependency-plugin copia las dependencias a target/lib y descomprime las librerias nativas en target/natives.

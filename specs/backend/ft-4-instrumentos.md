@@ -27,4 +27,4 @@ GamepadInstrument (control PlayStation, piano), PhoneInstrument (celular, organo
 
 ## Notas tras implementar
 - Los criterios de hardware se marcan despues de probar cada dispositivo en la computadora de la demo.
-- GamepadCalibration es una herramienta temporal para ver el numero de cada boton; se elimina al terminar de calibrar.
+- GamepadCalibration queda como herramienta de diagnóstico del control (se documenta en el README).
