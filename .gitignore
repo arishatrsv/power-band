@@ -24,3 +24,12 @@ hs_err_pid*
 /data/
 android-app/build/
 android-app/.gradle/
+
+# Gradle
+PowerBandPhone/.gradle/
+
+# Android build files
+PowerBandPhone/app/build/
+
+# Local Android SDK configuration
+PowerBandPhone/local.properties

@@ -136,7 +136,6 @@ public final class Constants {
     public static final String FAILED = "Instrumento NO disponible: ";
     public static final String ERROR = "Error: ";
     public static final String STARTUP_MESSAGE = "Power Band";
-    public static final String CALIBRATION_LINE = "%s = %s%n";
     public static final String CALIBRATION_DEVICE = "Dispositivo: tipo=%s nombre=\"%s\" componentes=%d botones=%d%n";
     public static final String CALIBRATION_PICKED = "Usando: %s%n";
     public static final String CALIBRATION_EVENT = "  [%s] %s = %.2f%n";
