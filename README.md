@@ -49,7 +49,7 @@ Las grabaciones se guardan en la carpeta `data/`.
 ```
 src/main/java/powerband/
 ├── Main.java        # arranque: conecta SuperCollider, activa instrumentos, abre el editor
-├── constants/       # biblioteca de constantes (ningún valor quemado fuera de aquí)
+├── constants/       # constantes del proyecto
 ├── exception/       # PowerBandException y DuplicateNameException
 ├── instrument/      # abstracción del Bridge: Instrument y los tres dispositivos
 ├── command/         # implementación del Bridge: SynthCommand y CommandBus
@@ -68,178 +68,170 @@ specs/               # specs de spec driven development
 
 ## Diseño (UML)
 
-Un solo diagrama con todas las clases del proyecto, agrupadas por paquete.
+Un solo diagrama con todas las clases del proyecto y sus relaciones.
 
 ```mermaid
 classDiagram
-    namespace powerband {
-        class Main {
-            +main(String[] args)
-            -startAll() List~Instrument~
-        }
+    class Main {
+        +main(String[] args)
+        -startAll() List~Instrument~
     }
 
-    namespace constants {
-        class Constants {
-            +String OSC_HOST
-            +int OSC_PORT
-            +int PHONE_PORT
-            +int RECORD_SIZE
-            +int ENTRY_SIZE
-            +int NAME_CHARS
-            +int BUFFER_SIZE
-        }
+    class Constants {
+        +String OSC_HOST
+        +int OSC_PORT
+        +int PHONE_PORT
+        +int RECORD_SIZE
+        +int ENTRY_SIZE
+        +int NAME_CHARS
+        +int BUFFER_SIZE
     }
 
-    namespace exception {
-        class PowerBandException
-        class DuplicateNameException
+    class PowerBandException
+    class DuplicateNameException
+
+    class Action {
+        <<enumeration>>
+        PLAY
+        NOTE_ON
+        NOTE_OFF
     }
 
-    namespace model {
-        class Action {
-            <<enumeration>>
-            PLAY
-            NOTE_ON
-            NOTE_OFF
-        }
-        class SynthType {
-            <<enumeration>>
-            PIANO
-            BASS
-            ORGAN
-        }
-        class Params {
-            <<record>>
-            +Action action
-            +int note
-            +int durMs
-            +int extra
-        }
-        class CommandRecord {
-            <<record>>
-            +long timeMs
-            +SynthType synth
-            +Params params
-        }
-        class Header {
-            <<record>>
-            +String name
-            +long start
-            +long end
-            +int count
-        }
-        class NameEntry {
-            <<record>>
-            +String name
-            +long value
-        }
+    class SynthType {
+        <<enumeration>>
+        PIANO
+        BASS
+        ORGAN
     }
 
-    namespace command {
-        class SynthCommand {
-            <<interface>>
-            +type() SynthType
-            +execute(OscClient osc, Params params)
-        }
-        class PianoCommand
-        class BassCommand
-        class OrganCommand
-        class CommandBus {
-            +subscribe(Listener listener)
-            +publish(SynthCommand command, Params params)
-        }
-        class Listener {
-            <<interface>>
-            +onCommand(SynthCommand command, Params params)
-        }
+    class Params {
+        <<record>>
+        +Action action
+        +int note
+        +int durMs
+        +int extra
     }
 
-    namespace synth {
-        class OscClient {
-            +play(String synthDef, Object controls)
-            +startNote(int key, String synthDef, Object controls)
-            +stopNote(int key)
-            +stopAll()
-            +close()
-        }
+    class CommandRecord {
+        <<record>>
+        +long timeMs
+        +SynthType synth
+        +Params params
     }
 
-    namespace instrument {
-        class Instrument {
-            <<abstract>>
-            -String name
-            -SynthCommand command
-            -CommandBus bus
-            +start()
-            +stop()
-            #open()
-            #close()
-            #emit(Params params)
-        }
-        class GamepadInstrument
-        class PhoneInstrument
-        class HeadphoneInstrument
-        class PitchDetector {
-            +detect(double[] block, float rate) OptionalDouble
-            +hzToMidi(double hz) int
-        }
-        class GamepadCalibration {
-            +main(String[] args)
-        }
+    class Header {
+        <<record>>
+        +String name
+        +long start
+        +long end
+        +int count
     }
 
-    namespace repository {
-        class RecordFile {
-            +count() long
-            +read(long index) byte[]
-            +write(long index, byte[] data)
-            +append(byte[] data)
-            +truncate(long newLength)
-        }
-        class Records {
-            +toBytes(CommandRecord c) byte[]
-            +toCommand(byte[] data) CommandRecord
-            +toHeader(byte[] data) Header
-            +toNameEntry(byte[] data) NameEntry
-            +validateName(String raw) String
-        }
-        class Recordings {
-            +openMusic() RecordFile
-            +find(String name) Optional~NameEntry~
-            +exists(String name) boolean
-            +register(String name, long headerOffset)
-            +listCount() long
-            +listAt(long position) NameEntry
-            +readHeader(long offset) Header
-        }
+    class NameEntry {
+        <<record>>
+        +String name
+        +long value
     }
 
-    namespace sort {
-        class IndexSorter {
-            +sort(Path file, Path tmpDir)
-        }
+    class SynthCommand {
+        <<interface>>
+        +type() SynthType
+        +execute(OscClient osc, Params params)
     }
 
-    namespace service {
-        class Recorder {
-            +start()
-            +stop()
-            +save(String rawName)
-            +discard()
-            +onCommand(SynthCommand command, Params params)
-        }
-        class Player {
-            +play(String name)
-            +stop()
-            +isPlaying() boolean
-        }
+    class PianoCommand
+    class BassCommand
+    class OrganCommand
+
+    class CommandBus {
+        +subscribe(Listener listener)
+        +publish(SynthCommand command, Params params)
     }
 
-    namespace ui {
-        class Menu {
-            +run()
-        }
+    class Listener {
+        <<interface>>
+        +onCommand(SynthCommand command, Params params)
+    }
+
+    class OscClient {
+        +play(String synthDef, Object controls)
+        +startNote(int key, String synthDef, Object controls)
+        +stopNote(int key)
+        +stopAll()
+        +close()
+    }
+
+    class Instrument {
+        <<abstract>>
+        -String name
+        -SynthCommand command
+        -CommandBus bus
+        +start()
+        +stop()
+        #open()
+        #close()
+        #emit(Params params)
+    }
+
+    class GamepadInstrument
+    class PhoneInstrument
+    class HeadphoneInstrument
+
+    class PitchDetector {
+        +detect(double[] block, float rate) OptionalDouble
+        +hzToMidi(double hz) int
+    }
+
+    class GamepadCalibration {
+        +main(String[] args)
+    }
+
+    class RecordFile {
+        +count() long
+        +read(long index) byte[]
+        +write(long index, byte[] data)
+        +append(byte[] data)
+        +truncate(long newLength)
+    }
+
+    class Records {
+        +toBytes(CommandRecord c) byte[]
+        +toCommand(byte[] data) CommandRecord
+        +toHeader(byte[] data) Header
+        +toNameEntry(byte[] data) NameEntry
+        +validateName(String raw) String
+    }
+
+    class Recordings {
+        +openMusic() RecordFile
+        +find(String name) Optional~NameEntry~
+        +exists(String name) boolean
+        +register(String name, long headerOffset)
+        +listCount() long
+        +listAt(long position) NameEntry
+        +readHeader(long offset) Header
+    }
+
+    class IndexSorter {
+        +sort(Path file, Path tmpDir)
+    }
+
+    class Recorder {
+        +start()
+        +stop()
+        +save(String rawName)
+        +discard()
+        +onCommand(SynthCommand command, Params params)
+    }
+
+    class Player {
+        +play(String name)
+        +stop()
+        +isPlaying() boolean
+    }
+
+    class Menu {
+        +run()
     }
 
     note for Constants "Todas las clases leen sus valores de aqui (no se dibuja cada flecha)"
