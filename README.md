@@ -1,6 +1,6 @@
 # Power Band
 
-Programa en Java en el que tres dispositivos físicos tocan tres sintetizadores de SuperCollider, y un editor musical muestra los comandos en vivo, los graba, los guarda en archivos binarios y los reproduce idénticos a como se tocaron.
+Programa en Java en el que **tres dispositivos físicos** tocan **tres sintetizadores de SuperCollider**, y un **editor musical** muestra los comandos en vivo, los graba, los guarda en archivos binarios y los reproduce idénticos a como se tocaron.
 
 | Dispositivo | Sintetizador | Cómo se toca |
 |---|---|---|
@@ -8,17 +8,26 @@ Programa en Java en el que tres dispositivos físicos tocan tres sintetizadores 
 | Celular Android | `organ70s` (suena hasta soltar) | Tocar la pantalla = nota; inclinar = nota y timbre |
 | Micrófono de los audífonos | `stringBass` | Tararear una nota = nota de bajo |
 
+## Requisitos
+
+- JDK 21 o superior y Maven 3.9 o superior.
+- [SuperCollider](https://supercollider.github.io/) (con su IDE).
+- Un control de PlayStation (USB o Bluetooth), un celular **Android** con la app de `PowerBandPhone/` y unos audífonos con micrófono.
+- La librería externa **JInput** (declarada en `pom.xml`, junto con sus librerías nativas) para leer el control. Java no trae una API estándar para controles de juego.
+
 ## Cómo ejecutar
 
 1. Abrir `supercollider/myband.sc` en SuperCollider. Evaluar el bloque entre paréntesis (`Ctrl+Enter`, o `Cmd+Enter` en Mac) y luego la línea `~myband.load;`. Eso enciende el servidor y carga los tres synths.
-2. Conectar los dispositivos.
+2. Conectar los dispositivos (ver sección *Instrumentos*).
 3. En la carpeta del proyecto:
 
    ```
    mvn clean package
-   java -Djava.library.path=target/natives -jar target/power-band.jar.
+   java "-Djava.library.path=target/natives" -jar target/power-band.jar
    ```
-4. Al arrancar, el programa conecta con SuperCollider, activa los instrumentos y abre el menú del editor.
+
+   `mvn package` también copia JInput a `target/lib/` y sus librerías nativas a `target/natives/`.
+4. Al arrancar, el programa conecta con SuperCollider, activa los instrumentos (avisa cuáles quedaron activos y cuáles no, y sigue con los demás) y abre el menú del editor.
 
 Menú del editor:
 
@@ -31,7 +40,9 @@ Menú del editor:
 | 5 | Activa o desactiva el monitor de comandos |
 | 0 | Sale |
 
-Las grabaciones se guardan en la carpeta `data/`
+Las grabaciones se guardan en la carpeta `data/`.
+
+**Herramienta de diagnóstico del control:** `powerband.instrument.GamepadCalibration` lista los dispositivos que ve JInput y muestra el número de cada botón o eje que se mueve. Sirve para ajustar los botones en `Constants`.
 
 ## Estructura del proyecto
 
@@ -48,148 +59,262 @@ src/main/java/powerband/
 ├── sort/            # Balanced Merge Sort externo
 ├── service/         # Recorder y Player
 └── ui/              # Menu de consola
+src/test/java/       # pruebas JUnit 5
 supercollider/       # myband.sc (los synths)
-android-app/         # app del celular
+PowerBandPhone/      # proyecto Android Studio de la app del celular
 specs/               # specs de spec driven development
-.github/             # reglas e instrucciones de Copilot
+.github/             # reglas, instrucciones y atajos de Copilot
 ```
 
-## Diseño
+## Diseño (UML)
 
-### Patrón Bridge y bus de comandos
-
-El **Instrument** (abstracción, qué dispositivo se toca) guarda un **SynthCommand** (implementación, qué synth suena). Se puede agregar un dispositivo o un synth sin tocar la otra jerarquía. Todos los comandos pasan por el **CommandBus** (Observer): quien hace sonar, el monitor y el grabador son suscriptores.
+Un solo diagrama con todas las clases del proyecto, agrupadas por paquete.
 
 ```mermaid
 classDiagram
-    class Instrument {
-        <<abstract>>
-        -String name
-        -SynthCommand command
-        -CommandBus bus
-        +start()
-        +stop()
-        #open()
-        #close()
-        #emit(Params params)
+    namespace powerband {
+        class Main {
+            +main(String[] args)
+            -startAll() List~Instrument~
+        }
     }
-    class GamepadInstrument
-    class PhoneInstrument
-    class HeadphoneInstrument
-    class SynthCommand {
-        <<interface>>
-        +type() SynthType
-        +execute(OscClient osc, Params params)
+
+    namespace constants {
+        class Constants {
+            +String OSC_HOST
+            +int OSC_PORT
+            +int PHONE_PORT
+            +int RECORD_SIZE
+            +int ENTRY_SIZE
+            +int NAME_CHARS
+            +int BUFFER_SIZE
+        }
     }
-    class PianoCommand
-    class BassCommand
-    class OrganCommand
-    class CommandBus {
-        +subscribe(Listener l)
-        +publish(SynthCommand c, Params p)
+
+    namespace exception {
+        class PowerBandException
+        class DuplicateNameException
     }
-    class Listener {
-        <<interface>>
-        +onCommand(SynthCommand c, Params p)
+
+    namespace model {
+        class Action {
+            <<enumeration>>
+            PLAY
+            NOTE_ON
+            NOTE_OFF
+        }
+        class SynthType {
+            <<enumeration>>
+            PIANO
+            BASS
+            ORGAN
+        }
+        class Params {
+            <<record>>
+            +Action action
+            +int note
+            +int durMs
+            +int extra
+        }
+        class CommandRecord {
+            <<record>>
+            +long timeMs
+            +SynthType synth
+            +Params params
+        }
+        class Header {
+            <<record>>
+            +String name
+            +long start
+            +long end
+            +int count
+        }
+        class NameEntry {
+            <<record>>
+            +String name
+            +long value
+        }
     }
-    class Recorder
-    class OscClient
+
+    namespace command {
+        class SynthCommand {
+            <<interface>>
+            +type() SynthType
+            +execute(OscClient osc, Params params)
+        }
+        class PianoCommand
+        class BassCommand
+        class OrganCommand
+        class CommandBus {
+            +subscribe(Listener listener)
+            +publish(SynthCommand command, Params params)
+        }
+        class Listener {
+            <<interface>>
+            +onCommand(SynthCommand command, Params params)
+        }
+    }
+
+    namespace synth {
+        class OscClient {
+            +play(String synthDef, Object controls)
+            +startNote(int key, String synthDef, Object controls)
+            +stopNote(int key)
+            +stopAll()
+            +close()
+        }
+    }
+
+    namespace instrument {
+        class Instrument {
+            <<abstract>>
+            -String name
+            -SynthCommand command
+            -CommandBus bus
+            +start()
+            +stop()
+            #open()
+            #close()
+            #emit(Params params)
+        }
+        class GamepadInstrument
+        class PhoneInstrument
+        class HeadphoneInstrument
+        class PitchDetector {
+            +detect(double[] block, float rate) OptionalDouble
+            +hzToMidi(double hz) int
+        }
+        class GamepadCalibration {
+            +main(String[] args)
+        }
+    }
+
+    namespace repository {
+        class RecordFile {
+            +count() long
+            +read(long index) byte[]
+            +write(long index, byte[] data)
+            +append(byte[] data)
+            +truncate(long newLength)
+        }
+        class Records {
+            +toBytes(CommandRecord c) byte[]
+            +toCommand(byte[] data) CommandRecord
+            +toHeader(byte[] data) Header
+            +toNameEntry(byte[] data) NameEntry
+            +validateName(String raw) String
+        }
+        class Recordings {
+            +openMusic() RecordFile
+            +find(String name) Optional~NameEntry~
+            +exists(String name) boolean
+            +register(String name, long headerOffset)
+            +listCount() long
+            +listAt(long position) NameEntry
+            +readHeader(long offset) Header
+        }
+    }
+
+    namespace sort {
+        class IndexSorter {
+            +sort(Path file, Path tmpDir)
+        }
+    }
+
+    namespace service {
+        class Recorder {
+            +start()
+            +stop()
+            +save(String rawName)
+            +discard()
+            +onCommand(SynthCommand command, Params params)
+        }
+        class Player {
+            +play(String name)
+            +stop()
+            +isPlaying() boolean
+        }
+    }
+
+    namespace ui {
+        class Menu {
+            +run()
+        }
+    }
+
+    note for Constants "Todas las clases leen sus valores de aqui (no se dibuja cada flecha)"
+    note for PowerBandException "La lanzan casi todas las clases"
+
+    Main ..> OscClient : crea
+    Main ..> CommandBus : crea
+    Main ..> Instrument : activa
+    Main ..> Recorder : crea
+    Main ..> Player : crea
+    Main ..> Menu : abre
+
+    PowerBandException <|-- DuplicateNameException
 
     Instrument <|-- GamepadInstrument
     Instrument <|-- PhoneInstrument
     Instrument <|-- HeadphoneInstrument
     Instrument o-- SynthCommand : command
     Instrument --> CommandBus : publica
+    HeadphoneInstrument ..> PitchDetector : usa
+
     SynthCommand <|.. PianoCommand
     SynthCommand <|.. BassCommand
     SynthCommand <|.. OrganCommand
-    SynthCommand ..> OscClient : usa
+    SynthCommand ..> OscClient : suena en
+    SynthCommand ..> Params
+    SynthCommand ..> SynthType
+
     CommandBus o-- Listener
     Listener <|.. Recorder
-```
 
-### Almacenamiento y editor
+    Params --> Action
+    CommandRecord --> SynthType
+    CommandRecord --> Params
 
-```mermaid
-classDiagram
-    class Recorder {
-        +start()
-        +stop()
-        +save(String name)
-        +discard()
-    }
-    class Player {
-        +play(String name)
-        +stop()
-    }
-    class Recordings {
-        +find(String name) NameEntry
-        +register(String name, long offset)
-        +listAt(long position) NameEntry
-        +readHeader(long offset) Header
-    }
-    class RecordFile {
-        +read(long index) byte[]
-        +write(long index, byte[] data)
-        +append(byte[] data)
-        +truncate(long length)
-    }
-    class Records {
-        +toBytes(...) byte[]
-    }
-    class IndexSorter {
-        +sort(Path file, Path tmpDir)
-    }
-    class Menu
-
+    Recorder --> Recordings
+    Recorder ..> RecordFile
+    Recorder ..> Records
+    Player --> Recordings
+    Player --> OscClient
+    Player ..> SynthCommand
+    Player ..> RecordFile
     Menu --> Recorder
     Menu --> Player
-    Recorder --> Recordings
-    Player --> Recordings
+    Menu --> Recordings
+
     Recordings --> RecordFile
     Recordings ..> Records
     Recordings ..> IndexSorter
+    IndexSorter ..> Records
+    IndexSorter ..> NameEntry
+    Records ..> CommandRecord
+    Records ..> Header
+    Records ..> NameEntry
 ```
 
-### Grabar
+**Explicación del diagrama**
 
-```mermaid
-sequenceDiagram
-    actor U as Usuario
-    participant I as Instrument
-    participant B as CommandBus
-    participant S as SuperCollider
-    participant R as Recorder
-    participant F as recordings.music
-    U->>I: toca el dispositivo
-    I->>B: publish(command, params)
-    B->>S: mensaje OSC (suena)
-    B->>R: onCommand(command, params)
-    R->>F: escribe el registro con su tiempo relativo
-```
+- **Bridge:** `Instrument` (qué dispositivo se toca) guarda un `SynthCommand` (qué synth suena). Se agrega un dispositivo o un synth sin tocar la otra jerarquía. `Main` es el único que decide qué dispositivo toca qué synth.
+- **Observer:** todo comando pasa por el `CommandBus`. Quien hace sonar, el monitor y el `Recorder` son suscriptores. Ningún instrumento le habla a SuperCollider directo.
+- **Persistencia:** `Recordings` maneja los tres archivos; `RecordFile` lee y escribe registros de tamaño fijo; `Records` convierte entre objetos y bytes; `IndexSorter` ordena el índice.
 
-Al terminar, el usuario pone el nombre: se valida (1 a 12 caracteres, único), se completa el encabezado, se agrega la entrada a `recordings.list` y a `recordings.index`, y se ordena el índice.
+**Flujo de grabar**
 
-### Reproducir
+1. Un instrumento publica el comando en el `CommandBus`.
+2. El bus lo ejecuta en SuperCollider (suena), lo muestra en el monitor y se lo pasa al `Recorder`.
+3. Si se está grabando, el `Recorder` escribe el registro con su tiempo relativo al inicio.
+4. Al detener, se pide el nombre: se valida (1 a 12 caracteres, único), se completa el encabezado, se agrega la entrada a `recordings.list` y a `recordings.index`, y se ordena el índice.
 
-```mermaid
-sequenceDiagram
-    actor U as Usuario
-    participant M as Menu
-    participant P as Player
-    participant Q as Recordings
-    participant L as Hilo lector
-    participant H as Hilo reproductor
-    participant S as SuperCollider
-    U->>M: elige una música de la lista
-    M->>P: play(nombre)
-    P->>Q: find(nombre) (búsqueda binaria en el índice)
-    Q-->>P: posición del encabezado
-    P->>Q: readHeader(posición)
-    P->>L: lee los comandos del disco a una cola
-    L->>H: comandos (buffering)
-    H->>S: ejecuta cada comando en inicio + tiempo relativo
-```
+**Flujo de reproducir**
+
+1. El `Menu` lista las músicas desde `recordings.list` (orden cronológico) y el usuario elige una.
+2. El `Player` busca el nombre con búsqueda binaria en el índice y lee el encabezado.
+3. Un hilo lector pasa los comandos del disco a una cola (buffering).
+4. Un hilo reproductor ejecuta cada comando en la hora `inicio + tiempo relativo`.
 
 ## Instrumentos
 
@@ -199,10 +324,15 @@ sequenceDiagram
 | `PhoneInstrument` | Celular Android, por UDP al puerto **9000** | Texto `x;y;z;toque` | Órgano: `toque` = 1 enciende y 0 apaga la misma nota; `x` elige la nota (escala de 15 grados) y `y` el timbre (3 timbres). |
 | `HeadphoneInstrument` | Micrófono de los audífonos (`javax.sound.sampled`) | Audio mono de 16 bits, bloques de 64 ms | Bajo: el volumen que sube tras un silencio dispara la nota; el tono (autocorrelación en `PitchDetector`) decide la nota, plegada al rango 28–55. |
 
-El editor actúa como **servidor** del instrumento externo: `PhoneInstrument` escucha el puerto UDP en su propio hilo. Si un dispositivo falla al arrancar, el programa avisa y sigue con los demás.
+El editor actúa como **servidor** del instrumento externo: `PhoneInstrument` escucha el puerto UDP en su propio hilo.
 
-La app del celular está en `android-app/`. 
-Se crea en Android Studio un proyecto "Empty Views Activity" (Java, paquete cr.powerband.phone, minSdk 24), se reemplaza MainActivity.java por el de esta carpeta y se agrega <uses-permission android:name="android.permission.INTERNET" /> al AndroidManifest.xml. En la app se escribe la IP de la computadora y se mantiene el dedo en la pantalla para tocar.
+**Conexión de cada dispositivo**
+
+- **Control:** por cable USB o Bluetooth, como cualquier control. JInput lo lee del sistema operativo.
+- **Celular:** por Wi-Fi, sin cable. La computadora y el celular deben estar en la misma red (o el celular comparte su punto de acceso). En la app se escribe la IP de la computadora. El firewall debe permitir UDP en el puerto 9000.
+- **Audífonos:** se conectan como entrada de micrófono del sistema. Se puede elegir el micrófono con `-Dpowerband.mic=parte-del-nombre`.
+
+**App del celular (`PowerBandPhone/`):** proyecto de Android Studio (Java, paquete `cr.powerband.phone`) con el permiso `INTERNET` en el manifest. Se abre en Android Studio y se ejecuta en un celular Android con la depuración USB activada. Solo funciona en Android. En la app se escribe la IP de la computadora, se presiona *Conectar* y se mantiene el dedo en la pantalla para tocar.
 
 ## Archivos y algoritmos
 
@@ -232,7 +362,7 @@ Todo en binario, con registros de **tamaño fijo** (`RandomAccessFile` y `ByteBu
 mvn clean test
 ```
 
-Son 19 tests de JUnit 5
+Son 19 tests de JUnit 5:
 
 | Clase | Qué cubre |
 |---|---|
@@ -241,10 +371,20 @@ Son 19 tests de JUnit 5
 | `InstrumentsTest` | Detector de tono, bajo, control (flancos, menor, octava) y celular (noteOn/noteOff y mensajes inválidos). |
 | `MainTest` | Mensaje de arranque. |
 
+## Decisiones e interpretaciones del enunciado
+
+- **Serialización:** escritura binaria manual con `ByteBuffer`, porque la serialización estándar de Java no garantiza tamaño fijo.
+- **Mismo tamaño para encabezado y comandos:** los dos miden 48 bytes.
+- **`noteOff` del órgano:** se graba como un comando propio.
+- **Nombres:** de 1 a 12 caracteres y únicos sin distinguir mayúsculas.
+- **Lo reproducido** va directo a SuperCollider y no pasa por el grabador, para que no se vuelva a grabar. Por eso el monitor no muestra comandos durante la reproducción.
+- **Librería externa:** JInput, para leer el control de PlayStation.
+- **Micrófono como dispositivo:** se usa el micrófono de los audífonos como instrumento del bajo.
+
 ## Proceso con IA
 
 El desarrollo siguió spec driven development con GitHub Copilot en VS Code:
 
 - Las reglas del proyecto están en `.github/copilot-instructions.md` y `.github/instructions/`.
 - Los atajos `/generate-feature-spec`, `/develop-feature` y `/update-current-development` están en `.github/prompts/`.
-- Las specs de cada feature están en `specs/`.
+- Las specs de cada feature están en `specs/` (por capa: `backend`, `database`, `frontend`, `testing` y `deploy`).
